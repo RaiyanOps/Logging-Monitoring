@@ -96,8 +96,18 @@ spec:
         secret:
           defaultMode: 420
           secretName: loki
-      - hostPath:
-          path: /home/logs/
+      # - hostPath:
+      #     path: /home/logs/
+      #   name: storage
+  volumeClaimTemplates:
+    - metadata:
         name: storage
+      spec:
+        storageClassName: local-path   #  ^=^q^h important
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5G
   updateStrategy:
     type: RollingUpdate
