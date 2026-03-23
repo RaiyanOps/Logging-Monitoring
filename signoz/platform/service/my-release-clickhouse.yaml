@@ -1,0 +1,41 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: szlog-clickhouse
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    clickhouse.altinity.com/Service: chi
+    clickhouse.altinity.com/app: chop
+    clickhouse.altinity.com/chi: szlog-clickhouse
+    clickhouse.altinity.com/namespace: platform
+    clickhouse.altinity.com/object-version: 8d4fd38b70b475bf5b1620c07f323e958de8f76d
+    helm.sh/chart: clickhouse-24.1.6
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8123
+      targetPort: 8123
+    - name: tcp
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    clickhouse.altinity.com/app: chop
+    clickhouse.altinity.com/chi: szlog-clickhouse
+    clickhouse.altinity.com/namespace: platform
+    clickhouse.altinity.com/ready: 'yes'
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  internalTrafficPolicy: Cluster
+

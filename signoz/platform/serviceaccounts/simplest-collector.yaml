@@ -1,0 +1,20 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: simplest-collector
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: opentelemetry-collector
+    app.kubernetes.io/instance: platform.simplest
+    app.kubernetes.io/managed-by: opentelemetry-operator
+    app.kubernetes.io/name: simplest-collector
+    app.kubernetes.io/part-of: opentelemetry
+    app.kubernetes.io/version: latest
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: >
+      {"apiVersion":"opentelemetry.io/v1alpha1","kind":"OpenTelemetryCollector","metadata":{"annotations":{},"name":"simplest","namespace":"platform"},"spec":{"config":"receivers:\n 
+      otlp:\n    protocols:\n      grpc:\n      http:\nprocessors:\n 
+      batch:\nexporters:\n  logging:\nservice:\n  pipelines:\n    traces:\n     
+      receivers: [otlp]\n      processors: [batch]\n      exporters:
+      [logging]\n","mode":"deployment"}}
+

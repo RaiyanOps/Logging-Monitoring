@@ -1,0 +1,105 @@
+﻿kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: simplest-collector
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: opentelemetry-collector
+    app.kubernetes.io/instance: platform.simplest
+    app.kubernetes.io/managed-by: opentelemetry-operator
+    app.kubernetes.io/name: simplest-collector
+    app.kubernetes.io/part-of: opentelemetry
+    app.kubernetes.io/version: latest
+  annotations:
+    deployment.kubernetes.io/revision: '1'
+    kubectl.kubernetes.io/last-applied-configuration: >
+      {"apiVersion":"opentelemetry.io/v1alpha1","kind":"OpenTelemetryCollector","metadata":{"annotations":{},"name":"simplest","namespace":"platform"},"spec":{"config":"receivers:\n 
+      otlp:\n    protocols:\n      grpc:\n      http:\nprocessors:\n 
+      batch:\nexporters:\n  logging:\nservice:\n  pipelines:\n    traces:\n     
+      receivers: [otlp]\n      processors: [batch]\n      exporters:
+      [logging]\n","mode":"deployment"}}
+    opentelemetry-operator-config/sha256: ac4c11e319fea2a9581bfbb907c99aba9309fb928b9ed30baf4df1670c893acd
+    prometheus.io/path: /metrics
+    prometheus.io/port: '8888'
+    prometheus.io/scrape: 'true'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: opentelemetry-collector
+      app.kubernetes.io/instance: platform.simplest
+      app.kubernetes.io/managed-by: opentelemetry-operator
+      app.kubernetes.io/part-of: opentelemetry
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: opentelemetry-collector
+        app.kubernetes.io/instance: platform.simplest
+        app.kubernetes.io/managed-by: opentelemetry-operator
+        app.kubernetes.io/name: simplest-collector
+        app.kubernetes.io/part-of: opentelemetry
+        app.kubernetes.io/version: latest
+      annotations:
+        kubectl.kubernetes.io/last-applied-configuration: >
+          {"apiVersion":"opentelemetry.io/v1alpha1","kind":"OpenTelemetryCollector","metadata":{"annotations":{},"name":"simplest","namespace":"platform"},"spec":{"config":"receivers:\n 
+          otlp:\n    protocols:\n      grpc:\n      http:\nprocessors:\n 
+          batch:\nexporters:\n  logging:\nservice:\n  pipelines:\n   
+          traces:\n      receivers: [otlp]\n      processors: [batch]\n     
+          exporters: [logging]\n","mode":"deployment"}}
+        opentelemetry-operator-config/sha256: ac4c11e319fea2a9581bfbb907c99aba9309fb928b9ed30baf4df1670c893acd
+        prometheus.io/path: /metrics
+        prometheus.io/port: '8888'
+        prometheus.io/scrape: 'true'
+    spec:
+      volumes:
+        - name: otc-internal
+          configMap:
+            name: simplest-collector
+            items:
+              - key: collector.yaml
+                path: collector.yaml
+            defaultMode: 420
+      containers:
+        - name: otc-container
+          image: >-
+            ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector:0.88.0
+          args:
+            - '--config=/conf/collector.yaml'
+          ports:
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          resources: {}
+          volumeMounts:
+            - name: otc-internal
+              mountPath: /conf
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: simplest-collector
+      serviceAccount: simplest-collector
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

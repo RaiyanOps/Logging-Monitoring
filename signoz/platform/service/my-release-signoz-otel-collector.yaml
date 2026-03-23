@@ -1,0 +1,56 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: szlog-signoz-otel-collector
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: otel-collector
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: 0.52.0
+    helm.sh/chart: signoz-0.50.0
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  ports:
+    - name: jaeger-grpc
+      protocol: TCP
+      port: 14250
+      targetPort: jaeger-grpc
+    - name: jaeger-thrift
+      protocol: TCP
+      port: 14268
+      targetPort: jaeger-thrift
+    - name: logsheroku
+      protocol: TCP
+      port: 8081
+      targetPort: logsheroku
+    - name: logsjson
+      protocol: TCP
+      port: 8082
+      targetPort: logsjson
+    - name: metrics
+      protocol: TCP
+      port: 8888
+      targetPort: metrics
+    - name: otlp
+      protocol: TCP
+      port: 4317
+      targetPort: otlp
+    - name: otlp-http
+      protocol: TCP
+      port: 4318
+      targetPort: otlp-http
+  selector:
+    app.kubernetes.io/component: otel-collector
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: signoz
+  type: NodePort
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  internalTrafficPolicy: Cluster
+

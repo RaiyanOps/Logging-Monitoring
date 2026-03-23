@@ -1,0 +1,133 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: szlog-signoz-otel-collector-metrics
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: otel-collector-metrics
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: 0.52.0
+    helm.sh/chart: signoz-0.50.0
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+data:
+  otel-collector-metrics-config.yaml: |-
+    exporters:
+      clickhousemetricswrite:
+        endpoint: tcp://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/${CLICKHOUSE_DATABASE}
+        timeout: 15s
+      clickhousemetricswrite/hostmetrics:
+        endpoint: tcp://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/${CLICKHOUSE_DATABASE}
+        resource_to_telemetry_conversion:
+          enabled: true
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      pprof:
+        endpoint: localhost:1777
+      zpages:
+        endpoint: localhost:55679
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 1s
+      resourcedetection:
+        detectors:
+        - env
+        - system
+        system:
+          hostname_sources:
+          - dns
+          - os
+        timeout: 2s
+    receivers:
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: generic-collector
+            kubernetes_sd_configs:
+            - role: pod
+            relabel_configs:
+            - action: keep
+              regex: true
+              source_labels:
+              - __meta_kubernetes_pod_annotation_signoz_io_scrape
+            - action: replace
+              regex: (.+)
+              source_labels:
+              - __meta_kubernetes_pod_annotation_signoz_io_path
+              target_label: __metrics_path__
+            - action: replace
+              separator: ':'
+              source_labels:
+              - __meta_kubernetes_pod_ip
+              - __meta_kubernetes_pod_annotation_signoz_io_port
+              target_label: __address__
+            - replacement: generic-collector
+              target_label: job_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_name
+              target_label: signoz_k8s_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+              target_label: signoz_k8s_instance
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_component
+              target_label: signoz_k8s_component
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_namespace
+              target_label: k8s_namespace_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_name
+              target_label: k8s_pod_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_uid
+              target_label: k8s_pod_uid
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_container_name
+              target_label: k8s_container_name
+            - action: drop
+              regex: (.+)-init
+              source_labels:
+              - __meta_kubernetes_pod_container_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_node_name
+              target_label: k8s_node_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_ready
+              target_label: k8s_pod_ready
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_phase
+              target_label: k8s_pod_phase
+            scrape_interval: 60s
+    service:
+      extensions:
+      - health_check
+      - zpages
+      - pprof
+      pipelines:
+        metrics:
+          exporters:
+          - clickhousemetricswrite
+          processors:
+          - batch
+          receivers:
+          - prometheus
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          address: 0.0.0.0:8888
+

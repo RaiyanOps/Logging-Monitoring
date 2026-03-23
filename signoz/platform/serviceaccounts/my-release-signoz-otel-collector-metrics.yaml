@@ -1,0 +1,15 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: szlog-signoz-otel-collector-metrics
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: otel-collector-metrics
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: 0.52.0
+    helm.sh/chart: signoz-0.50.0
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+

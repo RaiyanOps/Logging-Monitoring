@@ -1,0 +1,209 @@
+﻿kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: chi-szlog-clickhouse-cluster-0-0
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    clickhouse.altinity.com/app: chop
+    clickhouse.altinity.com/chi: szlog-clickhouse
+    clickhouse.altinity.com/cluster: cluster
+    clickhouse.altinity.com/namespace: platform
+    clickhouse.altinity.com/object-version: d815b1e802fe0585a9951a7f99f61ff003358f97
+    clickhouse.altinity.com/replica: '0'
+    clickhouse.altinity.com/shard: '0'
+    helm.sh/chart: clickhouse-24.1.6
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      clickhouse.altinity.com/app: chop
+      clickhouse.altinity.com/chi: szlog-clickhouse
+      clickhouse.altinity.com/cluster: cluster
+      clickhouse.altinity.com/namespace: platform
+      clickhouse.altinity.com/replica: '0'
+      clickhouse.altinity.com/shard: '0'
+  template:
+    metadata:
+      name: pod-template
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: clickhouse
+        app.kubernetes.io/instance: szlog
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/version: 24.1.2
+        clickhouse.altinity.com/app: chop
+        clickhouse.altinity.com/chi: szlog-clickhouse
+        clickhouse.altinity.com/cluster: cluster
+        clickhouse.altinity.com/namespace: platform
+        clickhouse.altinity.com/ready: 'yes'
+        clickhouse.altinity.com/replica: '0'
+        clickhouse.altinity.com/shard: '0'
+        helm.sh/chart: clickhouse-24.1.6
+      annotations:
+        meta.helm.sh/release-name: szlog
+        meta.helm.sh/release-namespace: platform
+        signoz.io/path: /metrics
+        signoz.io/port: '9363'
+        signoz.io/scrape: 'true'
+    spec:
+      volumes:
+        - name: shared-binary-volume
+          emptyDir: {}
+        - name: custom-functions-volume
+          configMap:
+            name: szlog-clickhouse-custom-functions
+            defaultMode: 420
+        - name: chi-szlog-clickhouse-common-configd
+          configMap:
+            name: chi-szlog-clickhouse-common-configd
+            defaultMode: 420
+        - name: chi-szlog-clickhouse-common-usersd
+          configMap:
+            name: chi-szlog-clickhouse-common-usersd
+            defaultMode: 420
+        - name: chi-szlog-clickhouse-deploy-confd-cluster-0-0
+          configMap:
+            name: chi-szlog-clickhouse-deploy-confd-cluster-0-0
+            defaultMode: 420
+      # initContainers:
+        # - name: szlog-clickhouse-udf-init
+          # image: 'docker.io/alpine:3.18.2'
+          # command:
+            # - sh
+            # - '-c'
+            # - >
+              # set -x
+
+              # wget -O /tmp/histogramQuantile
+              # https://github.com/SigNoz/signoz/raw/develop/deploy/docker/clickhouse-setup/user_scripts/histogramQuantile
+
+              # mv /tmp/histogramQuantile 
+              # /var/lib/clickhouse/user_scripts/histogramQuantile
+
+              # chmod +x /var/lib/clickhouse/user_scripts/histogramQuantile
+          # resources: {}
+          # volumeMounts:
+            # - name: shared-binary-volume
+              # mountPath: /var/lib/clickhouse/user_scripts
+          # terminationMessagePath: /dev/termination-log
+          # terminationMessagePolicy: File
+          # imagePullPolicy: IfNotPresent
+      containers:
+        - name: clickhouse
+          image: 'docker.io/clickhouse/clickhouse-server:24.1.2-alpine'
+          command:
+            - /bin/bash
+            - '-c'
+            - >-
+              /usr/bin/clickhouse-server
+              --config-file=/etc/clickhouse-server/config.xml
+          ports:
+            - name: http
+              containerPort: 8123
+              protocol: TCP
+            - name: client
+              containerPort: 9000
+              protocol: TCP
+            - name: interserver
+              containerPort: 9009
+              protocol: TCP
+            - name: tcp
+              containerPort: 9000
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          volumeMounts:
+            - name: data-volumeclaim-template
+              mountPath: /var/lib/clickhouse
+            - name: shared-binary-volume
+              mountPath: /var/lib/clickhouse/user_scripts
+            - name: custom-functions-volume
+              mountPath: /etc/clickhouse-server/functions
+            - name: chi-szlog-clickhouse-common-configd
+              mountPath: /etc/clickhouse-server/config.d/
+            - name: chi-szlog-clickhouse-common-usersd
+              mountPath: /etc/clickhouse-server/users.d/
+            - name: chi-szlog-clickhouse-deploy-confd-cluster-0-0
+              mountPath: /etc/clickhouse-server/conf.d/
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 1
+            periodSeconds: 3
+            successThreshold: 1
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: szlog-clickhouse
+      serviceAccount: szlog-clickhouse
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        fsGroupChangePolicy: OnRootMismatch
+      schedulerName: default-scheduler
+      hostAliases:
+        - ip: 127.0.0.1
+          hostnames:
+            - chi-szlog-clickhouse-cluster-0-0
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: data-volumeclaim-template
+        creationTimestamp: null
+        labels:
+          app.kubernetes.io/component: clickhouse
+          app.kubernetes.io/instance: szlog
+          app.kubernetes.io/name: clickhouse
+          app.kubernetes.io/version: 24.1.2
+          clickhouse.altinity.com/app: chop
+          clickhouse.altinity.com/chi: szlog-clickhouse
+          clickhouse.altinity.com/cluster: cluster
+          clickhouse.altinity.com/namespace: platform
+          clickhouse.altinity.com/replica: '0'
+          clickhouse.altinity.com/shard: '0'
+          helm.sh/chart: clickhouse-24.1.6
+        annotations:
+          meta.helm.sh/release-name: szlog
+          meta.helm.sh/release-namespace: platform
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+        volumeMode: Filesystem
+      status:
+        phase: Pending
+  serviceName: chi-szlog-clickhouse-cluster-0-0
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  revisionHistoryLimit: 10

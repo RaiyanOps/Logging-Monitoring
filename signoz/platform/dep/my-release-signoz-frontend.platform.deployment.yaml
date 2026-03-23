@@ -1,0 +1,106 @@
+﻿kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: szlog-signoz-frontend
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: 0.52.0
+    helm.sh/chart: signoz-0.50.0
+  annotations:
+    deployment.kubernetes.io/revision: '1'
+    helm.sh/hook-weight: '5'
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/instance: szlog
+      app.kubernetes.io/name: signoz
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: frontend
+        app.kubernetes.io/instance: szlog
+        app.kubernetes.io/name: signoz
+      annotations:
+        checksum/config: 4b62d600945a59a3f95adddfebf28bcd8ee1913ea5ec201e3afddc011dfc4498
+    spec:
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: szlog-signoz-frontend
+            defaultMode: 420
+      initContainers:
+        - name: szlog-signoz-frontend-init
+          image: 'docker.io/busybox:1.35'
+          command:
+            - sh
+            - '-c'
+            - >-
+              until wget --spider -q
+              szlog-signoz-query-service:8080/api/v1/health?live=1; do echo
+              -e "waiting for query-service"; sleep 5; done; echo -e
+              "query-service ready, starting frontend now";
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      containers:
+        - name: frontend
+          image: 'docker.io/signoz/frontend:0.52.0'
+          ports:
+            - name: http
+              containerPort: 3301
+              protocol: TCP
+          env:
+            - name: REACT_APP_QUERY_SERVICE_URL
+              value: ':8080'
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext: {}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: szlog-signoz-frontend
+      serviceAccount: szlog-signoz-frontend
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

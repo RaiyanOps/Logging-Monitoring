@@ -1,0 +1,38 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: szlog-clickhouse-custom-functions
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    helm.sh/chart: clickhouse-24.1.6
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+data:
+  custom-functions.xml: |
+    <functions>
+        <function>
+            <type>executable</type>
+            <name>histogramQuantile</name>
+            <return_type>Float64</return_type>
+            <argument>
+                <type>Array(Float64)</type>
+                <name>buckets</name>
+            </argument>
+            <argument>
+                <type>Array(Float64)</type>
+                <name>counts</name>
+            </argument>
+            <argument>
+                <type>Float64</type>
+                <name>quantile</name>
+            </argument>
+            <format>CSV</format>
+            <command>./histogramQuantile</command>
+        </function>
+    </functions>
+

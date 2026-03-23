@@ -1,0 +1,31 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: szlog-clickhouse-operator-metrics
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    clickhouse.altinity.com/chop: 0.21.2
+    helm.sh/chart: clickhouse-24.1.6
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  ports:
+    - name: szlog-clickhouse-operator-metrics
+      protocol: TCP
+      port: 8888
+      targetPort: 8888
+  selector:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  internalTrafficPolicy: Cluster

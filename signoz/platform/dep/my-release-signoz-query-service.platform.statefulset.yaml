@@ -1,0 +1,180 @@
+﻿kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: szlog-signoz-query-service
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: query-service
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: 0.52.0
+    helm.sh/chart: signoz-0.50.0
+  annotations:
+    helm.sh/hook-weight: '2'
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: query-service
+      app.kubernetes.io/instance: szlog
+      app.kubernetes.io/name: signoz
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: query-service
+        app.kubernetes.io/instance: szlog
+        app.kubernetes.io/name: signoz
+      annotations:
+        checksum/config: 270b2eb81a795e67d5923331683f73cedc157a3d27d93d2e7bbe89e6f531e457
+    spec:
+      volumes:
+        - name: prometheus
+          configMap:
+            name: szlog-signoz-query-service
+            defaultMode: 420
+        - name: dashboards
+          emptyDir: {}
+      initContainers:
+        - name: szlog-signoz-query-service-init
+          image: 'docker.io/busybox:1.35'
+          command:
+            - sh
+            - '-c'
+            - >-
+              until wget --user "${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}"
+              --spider -q szlog-clickhouse:8123/ping; do echo -e "waiting
+              for clickhouseDB"; sleep 5; done; echo -e "clickhouse ready,
+              starting query service now";
+          env:
+            - name: CLICKHOUSE_HOST
+              value: szlog-clickhouse
+            - name: CLICKHOUSE_PORT
+              value: '9000'
+            - name: CLICKHOUSE_HTTP_PORT
+              value: '8123'
+            - name: CLICKHOUSE_CLUSTER
+              value: cluster
+            - name: CLICKHOUSE_USER
+              value: admin
+            - name: CLICKHOUSE_PASSWORD
+              value: 27ff0399-0d3a-4bd8-919d-17c2181e6fb9
+            - name: CLICKHOUSE_SECURE
+              value: 'false'
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      containers:
+        - name: query-service
+          image: 'docker.io/signoz/query-service:0.52.0'
+          args:
+            - '--config=/root/config/prometheus.yml'
+            - '--experimental.cache-config'
+            - /root/config/cache.yaml
+            - '--flux-interval'
+            - 30m
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: http-internal
+              containerPort: 8085
+              protocol: TCP
+            - name: opamp-internal
+              containerPort: 4320
+              protocol: TCP
+          env:
+            - name: CLICKHOUSE_HOST
+              value: szlog-clickhouse
+            - name: CLICKHOUSE_PORT
+              value: '9000'
+            - name: CLICKHOUSE_HTTP_PORT
+              value: '8123'
+            - name: CLICKHOUSE_CLUSTER
+              value: cluster
+            - name: CLICKHOUSE_USER
+              value: admin
+            - name: CLICKHOUSE_PASSWORD
+              value: 27ff0399-0d3a-4bd8-919d-17c2181e6fb9
+            - name: CLICKHOUSE_SECURE
+              value: 'false'
+            - name: STORAGE
+              value: clickhouse
+            - name: ClickHouseUrl
+              value: >-
+                tcp://szlog-clickhouse:9000/?username=admin&password=27ff0399-0d3a-4bd8-919d-17c2181e6fb9
+            - name: ALERTMANAGER_API_PREFIX
+              value: 'http://szlog-signoz-alertmanager:9093/api/'
+            - name: GODEBUG
+              value: netdns=go
+            - name: TELEMETRY_ENABLED
+              value: 'true'
+            - name: DEPLOYMENT_TYPE
+              value: kubernetes-helm
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - name: prometheus
+              mountPath: /root/config
+            - name: dashboards
+              mountPath: /root/config/dashboards
+            - name: signoz-db
+              mountPath: /var/lib/signoz/
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health?live=1
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 6
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext: {}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: szlog-signoz-query-service
+      serviceAccount: szlog-signoz-query-service
+      securityContext: {}
+      schedulerName: default-scheduler
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: signoz-db
+        creationTimestamp: null
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+        volumeMode: Filesystem
+      status:
+        phase: Pending
+  serviceName: szlog-signoz-query-service
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  revisionHistoryLimit: 10

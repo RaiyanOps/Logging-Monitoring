@@ -1,0 +1,42 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: szlog-zookeeper-headless
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: zookeeper
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: zookeeper
+    helm.sh/chart: zookeeper-11.4.2
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+spec:
+  ports:
+    - name: tcp-client
+      protocol: TCP
+      port: 2181
+      targetPort: client
+    - name: tcp-follower
+      protocol: TCP
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      protocol: TCP
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/component: zookeeper
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: zookeeper
+  clusterIP: None
+  clusterIPs:
+    - None
+  type: ClusterIP
+  sessionAffinity: None
+  publishNotReadyAddresses: true
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  internalTrafficPolicy: Cluster
+

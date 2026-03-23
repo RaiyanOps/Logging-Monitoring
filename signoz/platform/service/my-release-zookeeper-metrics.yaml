@@ -1,0 +1,32 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: szlog-zookeeper-metrics
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: zookeeper
+    helm.sh/chart: zookeeper-11.4.2
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+    prometheus.io/path: /metrics
+    prometheus.io/port: '9141'
+    prometheus.io/scrape: 'true'
+spec:
+  ports:
+    - name: tcp-metrics
+      protocol: TCP
+      port: 9141
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/component: zookeeper
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: zookeeper
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  internalTrafficPolicy: Cluster

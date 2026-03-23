@@ -1,0 +1,106 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: chi-szlog-clickhouse-common-usersd
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    clickhouse.altinity.com/ConfigMap: ChiCommonUsers
+    clickhouse.altinity.com/app: chop
+    clickhouse.altinity.com/chi: szlog-clickhouse
+    clickhouse.altinity.com/namespace: platform
+    clickhouse.altinity.com/object-version: 72524b53e4750acf0fc64328197b68ba1f7017f1
+    helm.sh/chart: clickhouse-24.1.6
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+data:
+  01-clickhouse-user.xml: |
+    <yandex>
+        <users>
+            <clickhouse_operator>
+                <networks>
+                    <ip>127.0.0.1</ip>
+                </networks>
+                <password_sha256_hex>716b36073a90c6fe1d445ac1af85f4777c5b7a155cea359961826a030513e448</password_sha256_hex>
+                <profile>clickhouse_operator</profile>
+                <quota>default</quota>
+            </clickhouse_operator>
+        </users>
+        <profiles>
+            <clickhouse_operator>
+                <log_queries>0</log_queries>
+                <skip_unavailable_shards>1</skip_unavailable_shards>
+                <http_connection_timeout>10</http_connection_timeout>
+            </clickhouse_operator>
+        </profiles>
+    </yandex>
+  02-clickhouse-default-profile.xml: |
+    <yandex>
+      <profiles>
+        <default>
+          <log_queries>1</log_queries>
+          <connect_timeout_with_failover_ms>1000</connect_timeout_with_failover_ms>
+          <distributed_aggregation_memory_efficient>1</distributed_aggregation_memory_efficient>
+          <parallel_view_processing>1</parallel_view_processing>
+        </default>
+      </profiles>
+    </yandex>
+  03-database-ordinary.xml: |
+    <yandex>
+        <profiles>
+            <default>
+                <default_database_engine>Ordinary</default_database_engine>
+            </default>
+        </profiles>
+    </yandex>
+  chop-generated-profiles.xml: |
+    <yandex>
+        <profiles>
+            <default>
+                <allow_experimental_window_functions>1</allow_experimental_window_functions>
+                <allow_nondeterministic_mutations>1</allow_nondeterministic_mutations>
+            </default>
+        </profiles>
+    </yandex>
+  chop-generated-users.xml: |
+    <yandex>
+        <users>
+            <admin>
+                <networks>
+                    <host_regexp>(chi-szlog-clickhouse-[^.]+\d+-\d+|clickhouse\-szlog-clickhouse)\.platform\.svc\.cluster\.local$</host_regexp>
+                    <ip>::1</ip>
+                    <ip>127.0.0.1</ip>
+                    <ip>10.0.0.0/8</ip>
+                    <ip>100.64.0.0/10</ip>
+                    <ip>172.16.0.0/12</ip>
+                    <ip>192.0.0.0/24</ip>
+                    <ip>198.18.0.0/15</ip>
+                    <ip>192.168.0.0/16</ip>
+                </networks>
+                <password_sha256_hex>da90cf0836f8ac8f8a298293eafe856634b622df0c1ac2c82538f2cbe5406a6c</password_sha256_hex>
+                <profile>default</profile>
+                <quota>default</quota>
+            </admin>
+            <clickhouse_operator>
+                <networks>
+                    <ip>10.233.92.67</ip>
+                </networks>
+                <password_sha256_hex>716b36073a90c6fe1d445ac1af85f4777c5b7a155cea359961826a030513e448</password_sha256_hex>
+                <profile>clickhouse_operator</profile>
+            </clickhouse_operator>
+            <default>
+                <networks>
+                    <host_regexp>(chi-szlog-clickhouse-[^.]+\d+-\d+|clickhouse\-szlog-clickhouse)\.platform\.svc\.cluster\.local$</host_regexp>
+                    <ip>::1</ip>
+                    <ip>127.0.0.1</ip>
+                </networks>
+                <profile>default</profile>
+                <quota>default</quota>
+            </default>
+        </users>
+    </yandex>
+

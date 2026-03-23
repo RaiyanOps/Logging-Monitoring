@@ -1,0 +1,69 @@
+﻿kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: my-release-k8s-infra-otel-deployment
+  namespace: signoz
+  labels:
+    app.kubernetes.io/component: otel-deployment
+    app.kubernetes.io/instance: my-release
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/version: 0.88.0
+    helm.sh/chart: k8s-infra-0.11.10
+  annotations:
+    meta.helm.sh/release-name: my-release
+    meta.helm.sh/release-namespace: signoz
+data:
+  otel-deployment-config.yaml: |-
+    exporters:
+      otlp:
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+        headers:
+          signoz-access-token: ${SIGNOZ_API_KEY}
+        tls:
+          insecure: ${OTEL_EXPORTER_OTLP_INSECURE}
+          insecure_skip_verify: ${OTEL_EXPORTER_OTLP_INSECURE_SKIP_VERIFY}
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      pprof:
+        endpoint: localhost:1777
+      zpages:
+        endpoint: localhost:55679
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 1s
+      resourcedetection/internal:
+        detectors:
+        - env
+        override: true
+        timeout: 2s
+    receivers:
+      k8s_cluster:
+        allocatable_types_to_report:
+        - cpu
+        - memory
+        collection_interval: 30s
+        node_conditions_to_report:
+        - Ready
+        - MemoryPressure
+    service:
+      extensions:
+      - health_check
+      - zpages
+      - pprof
+      pipelines:
+        metrics/internal:
+          exporters:
+          - otlp
+          processors:
+          - resourcedetection/internal
+          - batch
+          receivers:
+          - k8s_cluster
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          address: 0.0.0.0:8888

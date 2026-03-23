@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  name: szlog-signoz-otel-collector-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: szlog-signoz-otel-collector-platform
+subjects:
+- kind: ServiceAccount
+  name: szlog-signoz-otel-collector
+  namespace: platform

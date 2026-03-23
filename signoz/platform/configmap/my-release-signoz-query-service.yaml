@@ -1,0 +1,49 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: szlog-signoz-query-service
+  namespace: platform
+  labels:
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+data:
+  cache.yaml: |
+    inmemory:
+      ttl: 168h
+    name: cache
+    provider: inmemory
+  prometheus.yml: >
+    # my global config
+
+    global:
+      scrape_interval:     5s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+      evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+      # scrape_timeout is set to the global default (10s).
+
+    # Alertmanager configuration
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - szlog-signoz-alertmanager:9093
+
+    # Load rules once and periodically evaluate them according to the global
+    'evaluation_interval'.
+
+    rule_files:
+      # - "first_rules.yml"
+      # - "second_rules.yml"
+      - 'alerts.yml'
+
+    # A scrape configuration containing exactly one endpoint to scrape:
+
+    # Here it's Prometheus itself.
+
+    scrape_configs: []
+
+
+    remote_read:
+      - url: tcp://admin:27ff0399-0d3a-4bd8-919d-17c2181e6fb9@szlog-clickhouse:9000/signoz_metrics
+

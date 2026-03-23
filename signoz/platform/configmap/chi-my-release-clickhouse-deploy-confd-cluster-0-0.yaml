@@ -1,0 +1,52 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: chi-szlog-clickhouse-deploy-confd-cluster-0-0
+  namespace: platform
+  labels:
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/instance: szlog
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    clickhouse.altinity.com/ConfigMap: Host
+    clickhouse.altinity.com/app: chop
+    clickhouse.altinity.com/chi: szlog-clickhouse
+    clickhouse.altinity.com/cluster: cluster
+    clickhouse.altinity.com/namespace: platform
+    clickhouse.altinity.com/object-version: 1e04b3a017a8852470463b787bf7e078e51ebf3f
+    clickhouse.altinity.com/replica: '0'
+    clickhouse.altinity.com/shard: '0'
+    helm.sh/chart: clickhouse-24.1.6
+  annotations:
+    meta.helm.sh/release-name: szlog
+    meta.helm.sh/release-namespace: platform
+data:
+  chop-generated-hostname-ports.xml: |
+    <yandex>
+        <tcp_port_secure>0</tcp_port_secure>
+        <https_port>0</https_port>
+        <interserver_http_host>chi-szlog-clickhouse-cluster-0-0</interserver_http_host>
+    </yandex>
+  chop-generated-macros.xml: |
+    <yandex>
+        <macros>
+            <installation>szlog-clickhouse</installation>
+            <all-sharded-shard>0</all-sharded-shard>
+            <cluster>cluster</cluster>
+            <shard>0</shard>
+            <replica>chi-szlog-clickhouse-cluster-0-0</replica>
+        </macros>
+    </yandex>
+  chop-generated-zookeeper.xml: |
+    <yandex>
+        <zookeeper>
+            <node>
+                <host>szlog-zookeeper-0.szlog-zookeeper-headless</host>
+                <port>2181</port>
+            </node>
+        </zookeeper>
+        <distributed_ddl>
+            <path>/clickhouse/szlog-clickhouse/task_queue/ddl</path>
+        </distributed_ddl>
+    </yandex>
+

@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/version: latest
+    helm.sh/chart: grafana-6.43.5
+  name: loki-grafana
+  namespace: grafana-loki
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: service
+    port: 80
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/name: grafana
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: loki
+    app.kubernetes.io/managed-by: Helm
+    chart: loki-2.16.0
+    heritage: Helm
+    variant: headless
+  name: loki-headless
+  namespace: grafana-loki
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http-metrics
+    port: 3100
+    protocol: TCP
+    targetPort: http-metrics
+  selector:
+    app: loki
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: loki
+    app.kubernetes.io/managed-by: Helm
+    chart: loki-2.16.0
+    heritage: Helm
+  name: loki-memberlist
+  namespace: grafana-loki
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 7946
+    protocol: TCP
+    targetPort: memberlist-port
+  publishNotReadyAddresses: true
+  selector:
+    app: loki
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: loki
+    app.kubernetes.io/managed-by: Helm
+    chart: loki-2.16.0
+    heritage: Helm
+  name: loki
+  namespace: grafana-loki
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http-metrics
+    port: 3100
+    protocol: TCP
+    targetPort: http-metrics
+  selector:
+    app: loki
+  sessionAffinity: None
+  type: ClusterIP   
